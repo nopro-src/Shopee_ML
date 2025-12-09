@@ -1,0 +1,35 @@
+
+---
+```gitignore
+# Virtual environment
+venv/
+.env/
+*.env
+
+# Python caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Logs
+*.log
+
+# Data files lớn (tuỳ dự án)
+data/*.csv
+data/*.xlsx
+data/*.json
+
+# OS files
+Thumbs.db
+.DS_Store

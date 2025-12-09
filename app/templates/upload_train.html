@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Train Model</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+<div class="container">
+
+    <h2>Train mô hình từ CSV</h2>
+
+    <form action="/train-product" method="post" enctype="multipart/form-data">
+        <label>Chọn file CSV:</label>
+        <input type="file" name="file" required>
+
+        <button class="btn">Train</button>
+    </form>
+
+    <a href="/" class="back">← Quay lại</a>
+
+</div>
+</body>
+</html>
