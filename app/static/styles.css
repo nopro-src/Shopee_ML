@@ -12,10 +12,12 @@ body {
     background: white;
     padding: 24px;
     border-radius: 10px;
-    box-shadow: 0 8px 30px rgba(16,24,40,0.06);
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.06);
 }
 
-h1, h2, h3 {
+h1,
+h2,
+h3 {
     text-align: center;
     margin-top: 0;
     color: #333;
@@ -29,14 +31,18 @@ h1, h2, h3 {
     border: 1px solid #eef2f7;
 }
 
-.row { 
-    display:flex; 
-    gap:10px; 
-    align-items:center; 
+.row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
 }
-.row input[type=file] { flex:1; }
 
-input, select {
+.row input[type=file] {
+    flex: 1;
+}
+
+input,
+select {
     padding: 9px;
     border-radius: 6px;
     border: 1px solid #d1dbe8;
@@ -51,19 +57,22 @@ input, select {
     border-radius: 8px;
     cursor: pointer;
 }
-.btn:hover { background: #0b5ed7; }
 
-.back { 
-    display:block; 
-    margin-top:14px; 
-    color:#444; 
-    text-decoration:none; 
+.btn:hover {
+    background: #0b5ed7;
 }
 
-.muted { 
-    color: #6b7280; 
-    font-size: 13px; 
-    margin-top:8px; 
+.back {
+    display: block;
+    margin-top: 14px;
+    color: #444;
+    text-decoration: none;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 13px;
+    margin-top: 8px;
 }
 
 /* ================= Table Styles ================= */
@@ -73,7 +82,8 @@ table {
     margin-top: 10px;
 }
 
-th, td {
+th,
+td {
     border: 1px solid #ccc;
     padding: 8px;
     text-align: center;
@@ -128,12 +138,13 @@ pre {
     white-space: nowrap;
 }
 
-.csv-table tr:hover td { 
-    background: #f0f9ff; 
-    cursor: pointer; 
+.csv-table tr:hover td {
+    background: #f0f9ff;
+    cursor: pointer;
 }
-.csv-table tr.selected td { 
-    background: #d9eefc !important; 
+
+.csv-table tr.selected td {
+    background: #d9eefc !important;
 }
 
 /* Nested Table (Cluster summary) */
@@ -141,29 +152,39 @@ pre {
     border-collapse: collapse;
     width: 100%;
 }
-.nested-table th, .nested-table td {
+
+.nested-table th,
+.nested-table td {
     border: 1px solid #ccc;
     padding: 4px;
     font-size: 12px;
 }
-.nested-table th { background-color: #eee; }
+
+.nested-table th {
+    background-color: #eee;
+}
 
 /* ================= Customer Cluster Result Fixed Size ================= */
 #clusterResult {
-    max-width: 100%; /* giới hạn max width */
+    max-width: 100%;
+    /* giới hạn max width */
 }
 
 #clusterResult .table-scroll {
-    max-height: 300px; /* cố định chiều cao scroll */
+    max-height: 300px;
+    /* cố định chiều cao scroll */
     overflow: auto;
 }
 
 #clusterText table {
-    table-layout: fixed; /* cố định các cột */
-    width: 100%; /* full container */
+    table-layout: fixed;
+    /* cố định các cột */
+    width: 100%;
+    /* full container */
 }
 
-#clusterText td, #clusterText th {
+#clusterText td,
+#clusterText th {
     word-wrap: break-word;
     white-space: normal;
 }

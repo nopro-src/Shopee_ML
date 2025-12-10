@@ -6,6 +6,65 @@
     <meta charset="utf-8">
     <title>Dự đoán sản phẩm</title>
     <link rel="stylesheet" href="/static/styles.css">
+
+    <style>
+        /* ====== FORM 2 CỘT ====== */
+        #predictForm .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        #predictForm .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        #predictForm label {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        /* Highlight row on select */
+        tr.selected {
+            background: #d0ebff !important;
+        }
+
+        /* Scroll table */
+        .table-scroll {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        a.back {
+            text-decoration: none;
+        }
+
+        a.back:hover {
+            text-decoration: none;
+        }
+
+        /* Validation styles */
+        .error {
+            color: #b91c1c;
+            font-size: 12px;
+            margin-top: 6px;
+            display: none;
+        }
+
+        .invalid {
+            border-color: #b91c1c !important;
+            box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.06);
+        }
+
+        /* Small responsive tweak */
+        @media (max-width: 640px) {
+            #predictForm .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -33,52 +92,111 @@
         </div>
 
         <h3>Thông tin sản phẩm (điền để dự đoán)</h3>
-        <form id="predictForm" class="card">
-            <div class="grid">
-                <select name="searched">
-                    <option value="0">Chưa tìm kiếm</option>
-                    <option value="1">Đã tìm kiếm</option>
-                </select>
-                <select name="in_favorite">
-                    <option value="0">Không yêu thích</option>
-                    <option value="1">Yêu thích</option>
-                </select>
-                <input name="unit_price" type="number" step="any" placeholder="Giá mỗi đơn vị">
 
-                <input name="original_price" type="number" step="any" placeholder="Giá gốc (original_price)">
+        <form id="predictForm" class="card" novalidate>
+            <div class="grid-2">
 
-                <input name="discount_rate" type="number" step="any" placeholder="% giảm giá (discount_rate)">
+                <div class="form-group">
+                    <label>Tìm kiếm (searched)</label>
+                    <select name="searched">
+                        <option value="0">Chưa tìm kiếm</option>
+                        <option value="1">Đã tìm kiếm</option>
+                    </select>
+                    <span class="error" data-for="searched"></span>
+                </div>
 
-                <input name="rating_average" type="number" step="any" placeholder="Điểm đánh giá (rating_average)">
+                <div class="form-group">
+                    <label>Yêu thích (in_favorite)</label>
+                    <select name="in_favorite">
+                        <option value="0">Không yêu thích</option>
+                        <option value="1">Yêu thích</option>
+                    </select>
+                    <span class="error" data-for="in_favorite"></span>
+                </div>
 
-                <input name="review_count" type="number" placeholder="Số đánh giá (review_count)">
+                <div class="form-group">
+                    <label>Giá bán (unit_price) <small style="font-weight:400">*required</small></label>
+                    <input name="unit_price" id="unit_price" type="number" step="any" placeholder="Giá mỗi đơn vị">
+                    <span class="error" data-for="unit_price"></span>
+                </div>
 
-                <select name="is_top_brand">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
+                <div class="form-group">
+                    <label>Giá gốc (original_price)</label>
+                    <input name="original_price" id="original_price" type="number" step="any" placeholder="Giá gốc">
+                    <span class="error" data-for="original_price"></span>
+                </div>
 
-                <select name="is_freeship_xtra">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
+                <div class="form-group">
+                    <label>Tỉ lệ giảm giá (%)</label>
+                    <input name="discount_rate" id="discount_rate" type="number" step="any" placeholder="% giảm giá">
+                    <span class="error" data-for="discount_rate"></span>
+                </div>
 
-                <input name="quantity_sold" type="number" placeholder="Số lượng đã bán (quantity_sold)">
+                <div class="form-group">
+                    <label>Điểm đánh giá (rating_average) <small style="font-weight:400">*required</small></label>
+                    <input name="rating_average" id="rating_average" type="number" step="any"
+                        placeholder="Điểm đánh giá">
+                    <span class="error" data-for="rating_average"></span>
+                </div>
 
-                <select name="has_buynow">
-                    <option value="0">Không</option>
-                    <option value="1">Có</option>
-                </select>
+                <div class="form-group">
+                    <label>Số đánh giá (review_count) <small style="font-weight:400">*required</small></label>
+                    <input name="review_count" id="review_count" type="number" placeholder="Số đánh giá">
+                    <span class="error" data-for="review_count"></span>
+                </div>
 
-                <input name="day_ago_created" type="number" placeholder="Số ngày từ khi tạo (day_ago_created)">
+                <div class="form-group">
+                    <label>Thương hiệu lớn (is_top_brand)</label>
+                    <select name="is_top_brand">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                    <span class="error" data-for="is_top_brand"></span>
+                </div>
 
-                <input name="qty_clicks" type="number" placeholder="Số lượt click (qty_clicks)">
+                <div class="form-group">
+                    <label>Freeship Xtra (is_freeship_xtra)</label>
+                    <select name="is_freeship_xtra">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                    <span class="error" data-for="is_freeship_xtra"></span>
+                </div>
+
+                <div class="form-group">
+                    <label>Số lượng đã bán (quantity_sold) <small style="font-weight:400">*required</small></label>
+                    <input name="quantity_sold" id="quantity_sold" type="number" placeholder="Đã bán">
+                    <span class="error" data-for="quantity_sold"></span>
+                </div>
+
+                <div class="form-group">
+                    <label>Buy Now (has_buynow)</label>
+                    <select name="has_buynow">
+                        <option value="0">Không</option>
+                        <option value="1">Có</option>
+                    </select>
+                    <span class="error" data-for="has_buynow"></span>
+                </div>
+
+                <div class="form-group">
+                    <label>Số ngày tạo (day_ago_created) <small style="font-weight:400">*required</small></label>
+                    <input name="day_ago_created" id="day_ago_created" type="number" placeholder="Ngày tạo">
+                    <span class="error" data-for="day_ago_created"></span>
+                </div>
+
+                <div class="form-group">
+                    <label>Số lượt click (qty_clicks) <small style="font-weight:400">*required</small></label>
+                    <input name="qty_clicks" id="qty_clicks" type="number" placeholder="Số click">
+                    <span class="error" data-for="qty_clicks"></span>
+                </div>
+
             </div>
 
-            <button class="btn">Dự đoán</button>
+            <button class="btn" style="margin-top:20px">Dự đoán</button>
         </form>
 
-        <h3 id="result"></h3>
+        <h3 id="result" style="min-height:1.4em"></h3>
+
         <a href="/" class="back">← Quay lại</a>
     </div>
 
@@ -88,6 +206,42 @@
         let totalRows = 0;
         let loadedUntil = 0;
         let loading = false;
+
+        // ---- helper: show / clear field error ----
+        function setFieldError(name, message) {
+            const el = document.getElementsByName(name)[0];
+            const err = document.querySelector(`.error[data-for="${name}"]`);
+            if (err) {
+                if (message) {
+                    err.innerText = message;
+                    err.style.display = "block";
+                    if (el) el.classList.add("invalid");
+                } else {
+                    err.innerText = "";
+                    err.style.display = "none";
+                    if (el) el.classList.remove("invalid");
+                }
+            }
+        }
+
+        function clearAllErrors() {
+            document.querySelectorAll(".error").forEach(e => {
+                e.innerText = "";
+                e.style.display = "none";
+            });
+            document.querySelectorAll(".invalid").forEach(i => i.classList.remove("invalid"));
+        }
+
+        // When user changes input, clear its error
+        document.addEventListener("input", (e) => {
+            const name = e.target && e.target.name;
+            if (name) setFieldError(name, "");
+        });
+        document.addEventListener("change", (e) => {
+            const name = e.target && e.target.name;
+            if (name) setFieldError(name, "");
+        });
+
         document.getElementById("uploadBtn").addEventListener("click", async (e) => {
             e.preventDefault();
             const fileInput = document.getElementById("csvInput");
@@ -101,7 +255,6 @@
 
             document.getElementById("fileInfo").innerText = "Đang tải lên...";
 
-            // upload đúng API
             const infoRes = await fetch("/upload-csv", { method: "POST", body: form });
             if (!infoRes.ok) {
                 alert("Lỗi upload");
@@ -179,7 +332,7 @@
             const row = await res.json();
 
             const featureNames = [
-                "searched", "in_cart", "in_favorite", "unit_price",
+                "searched", "in_favorite", "unit_price",
                 "original_price", "discount_rate", "rating_average", "review_count",
                 "is_top_brand", "is_freeship_xtra", "quantity_sold", "has_buynow",
                 "day_ago_created", "qty_clicks"
@@ -193,12 +346,62 @@
                         const found = Object.keys(row).find(k => k.replace(/\s+/g, '_').toLowerCase() === fn.toLowerCase());
                         if (found) el.value = row[found];
                     }
+                    // clear validation error for field filled from CSV
+                    setFieldError(fn, "");
                 }
             });
         }
 
+        // ---- Validation logic ----
+        function validateForm() {
+            clearAllErrors();
+            const requiredNumeric = [
+                "unit_price", "rating_average", "review_count",
+                "quantity_sold", "day_ago_created", "qty_clicks"
+            ];
+
+            const data = Object.fromEntries(new FormData(document.getElementById("predictForm")).entries());
+            const errors = [];
+
+            requiredNumeric.forEach(name => {
+                const raw = data[name];
+                if (raw === undefined || raw === null || raw.toString().trim() === "") {
+                    errors.push({ name, message: "Trường này là bắt buộc." });
+                } else {
+                    const n = Number(raw);
+                    if (isNaN(n)) {
+                        errors.push({ name, message: "Phải là một số hợp lệ." });
+                    } else if (!isFinite(n)) {
+                        errors.push({ name, message: "Giá trị không hợp lệ." });
+                    }
+                }
+            });
+
+            // example: discount_rate should be between 0-100 if provided
+            const dr = data["discount_rate"];
+            if (dr !== undefined && dr !== "" && !isNaN(Number(dr))) {
+                const nd = Number(dr);
+                if (nd < 0 || nd > 100) {
+                    errors.push({ name: "discount_rate", message: "Phải nằm trong 0 - 100." });
+                }
+            }
+
+            // show errors inline
+            errors.forEach(e => setFieldError(e.name, e.message));
+
+            return errors;
+        }
+
         document.getElementById("predictForm").addEventListener("submit", async function (e) {
             e.preventDefault();
+            const errors = validateForm();
+            if (errors.length > 0) {
+                // scroll to first invalid field
+                const first = document.getElementsByName(errors[0].name)[0];
+                if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
+                return;
+            }
+
             const data = Object.fromEntries(new FormData(e.target).entries());
             // convert to numbers
             Object.keys(data).forEach(k => {
@@ -220,7 +423,16 @@
             if (json.error) {
                 document.getElementById("result").innerText = "Lỗi: " + json.error;
             } else {
-                document.getElementById("result").innerText = "Khả năng mua: " + (json.probability * 100).toFixed(2) + "%";
+                const resultEl = document.getElementById("result");
+
+                if (json.probability >= 0.5) {
+                    resultEl.innerHTML = `Khả năng mua: ${(json.probability * 100).toFixed(2)}%`;
+                    resultEl.style.setProperty("color", "green", "important");
+                } else {
+                    resultEl.innerHTML = `Khả năng mua thấp: ${(json.probability * 100).toFixed(2)}%`;
+                    resultEl.style.setProperty("color", "red", "important");
+                }
+
             }
         });
     </script>
