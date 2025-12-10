@@ -1,32 +1,47 @@
-import pandas as pd
-import joblib
+# app/services/predict_service.py
 import os
+import joblib
+import pandas as pd
 
 MODEL_PATH = "app/ml/product_model.pkl"
 SCALER_PATH = "app/ml/scaler.pkl"
 
-required_features = [
-    "in_favorite", "discount_rate", "rating_average", "unit_price",
-    "seller_id", "price", "original_price", "discount", "review_count",
-    "is_top_brand", "quantity_sold", "qty_clicks"
+FEATURES = [
+    "searched", "in_favorite", "unit_price",
+    "original_price", "discount_rate", "rating_average", "review_count",
+    "is_top_brand", "is_freeship_xtra", "quantity_sold", "has_buynow",
+    "day_ago_created", "qty_clicks"
 ]
 
 
+def _prepare_input(data: dict):
+    # fill missing, coerce to numeric
+    row = {}
+    for f in FEATURES:
+        v = data.get(f, 0)
+        # if string empty -> 0
+        if v in ["", None]:
+            v = 0
+        try:
+            row[f] = float(v)
+        except Exception:
+            # some booleans may be strings like '0'/'1'
+            try:
+                row[f] = float(str(v).strip())
+            except Exception:
+                row[f] = 0.0
+    return pd.DataFrame([row])
+
+
 def predict_product(data: dict):
-    if not os.path.exists(MODEL_PATH):
-        return {"error": "Model chưa được train"}
+    if not os.path.exists(MODEL_PATH) or not os.path.exists(SCALER_PATH):
+        return {"error": "Model chưa được train (product_model.pkl hoặc scaler.pkl không tồn tại)"}
 
-    # Thiếu giá trị → tự điền
-    for col in required_features:
-        if col not in data or data[col] in ["", None]:
-            data[col] = 0
-
-    df = pd.DataFrame([data])
-    df = df[required_features].fillna(0)
+    df = _prepare_input(data)
 
     model = joblib.load(MODEL_PATH)
     scaler = joblib.load(SCALER_PATH)
 
-    prob = model.predict_proba(scaler.transform(df))[0][1]
-
+    Xs = scaler.transform(df[FEATURES])
+    prob = model.predict_proba(Xs)[0][1]
     return {"probability": round(float(prob), 6)}

@@ -1,4 +1,5 @@
-from fastapi import APIRouter, UploadFile, File, Request
+# app/routers/train_router.py
+from fastapi import APIRouter, Request, UploadFile, File
 from fastapi.templating import Jinja2Templates
 from app.services.train_service import train_product_model
 import os
@@ -7,6 +8,7 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 
 UPLOAD_DIR = "app/static/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.get("/upload-train")
@@ -15,19 +17,18 @@ def page_upload(request: Request):
 
 
 @router.post("/train-product")
-async def train_product(file: UploadFile = File(...)):
-
-    if not os.path.exists(UPLOAD_DIR):
-        os.makedirs(UPLOAD_DIR)
-
-    file_path = f"{UPLOAD_DIR}/{file.filename}"
-
-    with open(file_path, "wb") as f:
+async def train_product(request: Request, file: UploadFile = File(...)):
+    # Save uploaded file
+    path = f"{UPLOAD_DIR}/{file.filename}"
+    with open(path, "wb") as f:
         f.write(await file.read())
 
-    result = train_product_model(file_path)
+    # Train and get metrics
+    metrics = train_product_model(path)
 
-    return {
-        "message": "Train thành công!",
-        "metrics": result
-    }
+    # Render same template but with metrics
+    return templates.TemplateResponse("upload_train.html", {
+        "request": request,
+        "metrics": metrics,
+        "filename": file.filename
+    })

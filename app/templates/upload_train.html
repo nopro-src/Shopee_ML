@@ -1,23 +1,39 @@
+<!-- app/templates/upload_train.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Train Model</title>
+    <meta charset="utf-8">
+    <title>Train mô hình</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
 <div class="container">
-
     <h2>Train mô hình từ CSV</h2>
 
-    <form action="/train-product" method="post" enctype="multipart/form-data">
-        <label>Chọn file CSV:</label>
+    <form action="/train-product" method="post" enctype="multipart/form-data" class="card">
+        <label>Chọn file CSV (có cột purchased 0/1):</label>
         <input type="file" name="file" required>
-
         <button class="btn">Train</button>
     </form>
 
     <a href="/" class="back">← Quay lại</a>
 
+    {% if metrics %}
+        <div class="card" style="margin-top:16px;">
+            <h3>Kết quả train</h3>
+            <p><strong>File:</strong> {{ filename }}</p>
+            <p><strong>Số hàng:</strong> {{ metrics.n_rows }}</p>
+            <p><strong>Features:</strong> {{ metrics.features }}</p>
+            <p><strong>ROC-AUC:</strong> {{ metrics.roc_auc }}</p>
+
+            <h4>Báo cáo classification</h4>
+            <pre style="white-space:pre-wrap; font-size:13px;">
+{% for k, v in metrics.report.items() %}
+{{ k }} : {{ v }}
+{% endfor %}
+            </pre>
+        </div>
+    {% endif %}
 </div>
 </body>
 </html>

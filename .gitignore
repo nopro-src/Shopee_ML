@@ -25,7 +25,7 @@ dist/
 # Logs
 *.log
 
-# Data files lớn (tuỳ dự án)
+# Data files lớn 
 data/*.csv
 data/*.xlsx
 data/*.json

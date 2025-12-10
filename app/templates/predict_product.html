@@ -1,244 +1,230 @@
+<!-- app/templates/predict_product.html -->
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Dự đoán sản phẩm</title>
     <link rel="stylesheet" href="/static/styles.css">
 </head>
+
 <body>
-<div class="container">
-    <h2>Dự đoán khả năng mua sản phẩm</h2>
+    <div class="container">
+        <h2>Dự đoán khả năng mua sản phẩm</h2>
 
-    <!-- Upload CSV: dùng JS fetch /upload-csv -->
-    <div class="card">
-        <label><b>Chọn file CSV để xem & chọn dòng:</b></label>
-        <div class="row">
-            <input id="csvInput" type="file" accept=".csv">
-            <button id="uploadBtn" class="btn">Tải lên & Xem dữ liệu</button>
+        <div class="card">
+            <label><b>Chọn file CSV để xem & chọn dòng:</b></label>
+            <div class="row">
+                <input id="csvInput" type="file" accept=".csv">
+                <button id="uploadBtn" class="btn">Tải lên & Xem dữ liệu</button>
+            </div>
+            <div id="fileInfo" class="muted"></div>
         </div>
-        <div id="fileInfo" class="muted"></div>
+
+        <div id="previewSection" style="display:none">
+            <h3>Dữ liệu trong file:</h3>
+            <div id="tableWrapper" class="table-scroll">
+                <table id="csvTable" class="csv-table">
+                    <thead id="csvHead"></thead>
+                    <tbody id="csvBody"></tbody>
+                </table>
+            </div>
+            <div class="muted">Kéo bảng để tải thêm. Bấm 1 dòng để tự điền form.</div>
+        </div>
+
+        <h3>Thông tin sản phẩm (điền để dự đoán)</h3>
+        <form id="predictForm" class="card">
+            <div class="grid">
+                <select name="searched">
+                    <option value="0">Chưa tìm kiếm</option>
+                    <option value="1">Đã tìm kiếm</option>
+                </select>
+                <select name="in_favorite">
+                    <option value="0">Không yêu thích</option>
+                    <option value="1">Yêu thích</option>
+                </select>
+                <input name="unit_price" type="number" step="any" placeholder="Giá mỗi đơn vị">
+
+                <input name="original_price" type="number" step="any" placeholder="Giá gốc (original_price)">
+
+                <input name="discount_rate" type="number" step="any" placeholder="% giảm giá (discount_rate)">
+
+                <input name="rating_average" type="number" step="any" placeholder="Điểm đánh giá (rating_average)">
+
+                <input name="review_count" type="number" placeholder="Số đánh giá (review_count)">
+
+                <select name="is_top_brand">
+                    <option value="0">Không</option>
+                    <option value="1">Có</option>
+                </select>
+
+                <select name="is_freeship_xtra">
+                    <option value="0">Không</option>
+                    <option value="1">Có</option>
+                </select>
+
+                <input name="quantity_sold" type="number" placeholder="Số lượng đã bán (quantity_sold)">
+
+                <select name="has_buynow">
+                    <option value="0">Không</option>
+                    <option value="1">Có</option>
+                </select>
+
+                <input name="day_ago_created" type="number" placeholder="Số ngày từ khi tạo (day_ago_created)">
+
+                <input name="qty_clicks" type="number" placeholder="Số lượt click (qty_clicks)">
+            </div>
+
+            <button class="btn">Dự đoán</button>
+        </form>
+
+        <h3 id="result"></h3>
+        <a href="/" class="back">← Quay lại</a>
     </div>
 
-    <!-- Table preview (virtual / chunked) -->
-    <div id="previewSection" style="display:none">
-        <h3>Dữ liệu trong file:</h3>
-        <div id="tableWrapper" class="table-scroll">
-            <table id="csvTable" class="csv-table">
-                <thead id="csvHead"></thead>
-                <tbody id="csvBody"></tbody>
-            </table>
-        </div>
-        <div class="muted">Kéo bảng để tải thêm. Bấm 1 dòng để tự điền form.</div>
-    </div>
-
-    <!-- Form -->
-    <h3>Thông tin sản phẩm</h3>
-    <form id="predictForm" class="card">
-        <div class="grid">
-            <!-- 0/1 fields are select to match height -->
-            <select name="in_favorite">
-                <option value="0">Không yêu thích</option>
-                <option value="1">Yêu thích</option>
-            </select>
-
-            <input name="discount_rate" type="number" step="any" placeholder="% giảm giá">
-
-            <input name="rating_average" type="number" step="any" placeholder="Điểm đánh giá (0-5)">
-
-            <input name="unit_price" type="number" step="any" placeholder="Giá mỗi đơn vị">
-
-            <input name="seller_id" type="number" placeholder="Mã người bán">
-
-            <input name="price" type="number" step="any" placeholder="Giá bán">
-
-            <input name="original_price" type="number" step="any" placeholder="Giá gốc">
-
-            <input name="discount" type="number" step="any" placeholder="Số tiền giảm">
-
-            <input name="review_count" type="number" placeholder="Số đánh giá">
-
-            <select name="is_top_brand">
-                <option value="0">Không phải thương hiệu lớn</option>
-                <option value="1">Thương hiệu lớn</option>
-            </select>
-
-            <input name="quantity_sold" type="number" placeholder="Số lượng đã bán">
-
-            <input name="qty_clicks" type="number" placeholder="Số lượt xem">
-        </div>
-
-        <button class="btn">Dự đoán</button>
-    </form>
-
-    <h3 id="result"></h3>
-    <a href="/" class="back">← Quay lại</a>
-</div>
-
-<script>
-/* ---------- Config ---------- */
-const CHUNK_SIZE = 150;   // số dòng load mỗi lần (tùy máy, tăng giảm)
-let currentFilename = null;
-let totalRows = 0;
-let loadedUntil = 0;
-let loading = false;
-
-/* ---------- Upload file ---------- */
-document.getElementById("uploadBtn").addEventListener("click", async (e) => {
-    e.preventDefault();
-    const fileInput = document.getElementById("csvInput");
-    if (!fileInput.files || fileInput.files.length === 0) {
-        alert("Chọn file CSV trước.");
-        return;
-    }
-    const file = fileInput.files[0];
-    const form = new FormData();
-    form.append("file", file);
-
-    document.getElementById("fileInfo").innerText = "Đang tải lên...";
-    const res = await fetch("/upload-csv", { method: "POST", body: form });
-    if (!res.ok) {
-        const err = await res.json();
-        alert("Upload lỗi: " + (err.detail || res.statusText));
-        document.getElementById("fileInfo").innerText = "";
-        return;
-    }
-    const info = await res.json();
-    currentFilename = info.filename;
-    totalRows = info.rows;
-    document.getElementById("fileInfo").innerText = `File: ${currentFilename} — ${totalRows} hàng, ${info.cols.length} cột.`;
-    // show preview section and init
-    document.getElementById("previewSection").style.display = "block";
-    document.getElementById("csvHead").innerHTML = "";
-    document.getElementById("csvBody").innerHTML = "";
-    loadedUntil = 0;
-    await loadChunk();  // load first chunk
-});
-
-/* ---------- Load chunk ---------- */
-async function loadChunk() {
-    if (!currentFilename || loading) return;
-    if (loadedUntil >= totalRows) return;
-    loading = true;
-    const start = loadedUntil;
-    const size = CHUNK_SIZE;
-    const res = await fetch(`/load-csv-chunk?filename=${encodeURIComponent(currentFilename)}&start=${start}&size=${size}`);
-    if (!res.ok) {
-        console.error("Chunk load failed");
-        loading = false;
-        return;
-    }
-    const json = await res.json();
-    appendRows(json.data);
-    loadedUntil = json.end;
-    loading = false;
-}
-
-/* ---------- Append rows into table ---------- */
-function appendRows(rows) {
-    if (!rows || rows.length === 0) return;
-    const thead = document.getElementById("csvHead");
-    const tbody = document.getElementById("csvBody");
-
-    // header lần đầu
-    if (thead.children.length === 0) {
-        const tr = document.createElement("tr");
-        Object.keys(rows[0]).forEach(k => {
-            const th = document.createElement("th");
-            th.innerText = k;
-            tr.appendChild(th);
-        });
-        thead.appendChild(tr);
-    }
-    // append mỗi row
-    rows.forEach((row, idx) => {
-        const tr = document.createElement("tr");
-        tr.dataset.rowIndex = (loadedUntil + idx); // index tương ứng trong file
-        Object.values(row).forEach(val => {
-            const td = document.createElement("td");
-            td.innerText = val;
-            tr.appendChild(td);
-        });
-        // click handler: gọi get-row server để đảm bảo mapping chính xác (và nhanh)
-        tr.addEventListener("click", async function() {
-            const index = parseInt(this.dataset.rowIndex);
-            await fillFormFromIndex(index);
-            // highlight
-            [...this.parentElement.querySelectorAll("tr")].forEach(r=>r.classList.remove("selected"));
-            this.classList.add("selected");
-            // scroll form into view
-            document.getElementById("predictForm").scrollIntoView({behavior:"smooth"});
-        });
-        tbody.appendChild(tr);
-    });
-}
-
-/* ---------- on scroll -> load more ---------- */
-const wrapper = document.getElementById("tableWrapper");
-wrapper.addEventListener("scroll", function() {
-    // khi scroll gần đáy -> load thêm
-    if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - 80) {
-        loadChunk();
-    }
-});
-
-/* ---------- Fill form from /get-row ---------- */
-async function fillFormFromIndex(index) {
-    if (!currentFilename) return;
-    const res = await fetch(`/get-row?filename=${encodeURIComponent(currentFilename)}&index=${index}`);
-    if (!res.ok) {
-        alert("Không lấy được dòng: " + res.statusText);
-        return;
-    }
-    const row = await res.json();
-
-    // List các trường bạn muốn map từ CSV -> form input names
-    const featureNames = [
-        'in_favorite','discount_rate','rating_average','unit_price',
-        'seller_id','price','original_price','discount','review_count',
-        'is_top_brand','quantity_sold','qty_clicks'
-    ];
-
-    featureNames.forEach(fn => {
-        const el = document.getElementsByName(fn)[0];
-        // CSV có thể dùng tên hơi khác (ví dụ 'quantity_sold' vs 'quantity sold')
-        // nên thử tìm keys tương tự (case-insensitive, underscore/space)
-        if (el) {
-            // direct key
-            if (row.hasOwnProperty(fn)) {
-                el.value = row[fn];
-            } else {
-                // try to find approximate key
-                const foundKey = Object.keys(row).find(k => k.replace(/\s+/g,'_').toLowerCase() === fn.toLowerCase());
-                if (foundKey) el.value = row[foundKey];
+    <script>
+        const CHUNK_SIZE = 150;
+        let currentFilename = null;
+        let totalRows = 0;
+        let loadedUntil = 0;
+        let loading = false;
+        document.getElementById("uploadBtn").addEventListener("click", async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById("csvInput");
+            if (!fileInput.files || fileInput.files.length === 0) {
+                alert("Chọn file CSV trước.");
+                return;
             }
+            const file = fileInput.files[0];
+            const form = new FormData();
+            form.append("file", file);
+
+            document.getElementById("fileInfo").innerText = "Đang tải lên...";
+
+            // upload đúng API
+            const infoRes = await fetch("/upload-csv", { method: "POST", body: form });
+            if (!infoRes.ok) {
+                alert("Lỗi upload");
+                return;
+            }
+
+            const info = await infoRes.json();
+            currentFilename = info.filename;
+            totalRows = info.rows;
+
+            document.getElementById("fileInfo").innerText =
+                `File: ${currentFilename} — ${totalRows} hàng.`;
+
+            document.getElementById("previewSection").style.display = "block";
+            document.getElementById("csvHead").innerHTML = "";
+            document.getElementById("csvBody").innerHTML = "";
+            loadedUntil = 0;
+
+            await loadChunk();
+        });
+
+        async function loadChunk() {
+            if (!currentFilename || loading) return;
+            if (loadedUntil >= totalRows) return;
+            loading = true;
+            const res = await fetch(`/load-csv-chunk?filename=${encodeURIComponent(currentFilename)}&start=${loadedUntil}&size=${CHUNK_SIZE}`);
+            if (!res.ok) { loading = false; return; }
+            const json = await res.json();
+            appendRows(json.data);
+            loadedUntil = json.end;
+            loading = false;
         }
-    });
-}
 
-/* ---------- Submit form (predict) ---------- */
-document.getElementById("predictForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
-    // convert values to numbers where possible
-    Object.keys(data).forEach(k => {
-        const n = Number(data[k]);
-        data[k] = isNaN(n) ? data[k] : n;
-    });
+        function appendRows(rows) {
+            if (!rows || rows.length === 0) return;
+            const thead = document.getElementById("csvHead");
+            const tbody = document.getElementById("csvBody");
+            if (thead.children.length === 0) {
+                const tr = document.createElement("tr");
+                Object.keys(rows[0]).forEach(k => {
+                    const th = document.createElement("th"); th.innerText = k; tr.appendChild(th);
+                });
+                thead.appendChild(tr);
+            }
+            rows.forEach((row, idx) => {
+                const tr = document.createElement("tr");
+                tr.dataset.rowIndex = (loadedUntil + idx);
+                Object.values(row).forEach(val => {
+                    const td = document.createElement("td"); td.innerText = val; tr.appendChild(td);
+                });
+                tr.addEventListener("click", async function () {
+                    const index = parseInt(this.dataset.rowIndex);
+                    await fillFormFromIndex(index);
+                    [...this.parentElement.querySelectorAll("tr")].forEach(r => r.classList.remove("selected"));
+                    this.classList.add("selected");
+                    document.getElementById("predictForm").scrollIntoView({ behavior: "smooth" });
+                });
+                tbody.appendChild(tr);
+            });
+        }
 
-    const res = await fetch("/predict-product", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-        const err = await res.json().catch(()=>({detail:res.statusText}));
-        alert("Predict lỗi: " + (err.detail || res.statusText));
-        return;
-    }
-    const json = await res.json();
-    document.getElementById("result").innerText = "Khả năng mua: " + (json.probability * 100).toFixed(2) + "%";
-});
-</script>
+        const wrapper = document.getElementById("tableWrapper");
+        if (wrapper) {
+            wrapper.addEventListener("scroll", function () {
+                if (wrapper.scrollTop + wrapper.clientHeight >= wrapper.scrollHeight - 80) {
+                    loadChunk();
+                }
+            });
+        }
+
+        async function fillFormFromIndex(index) {
+            if (!currentFilename) return;
+            const res = await fetch(`/get-row?filename=${encodeURIComponent(currentFilename)}&index=${index}`);
+            if (!res.ok) { alert("Không lấy được dòng"); return; }
+            const row = await res.json();
+
+            const featureNames = [
+                "searched", "in_cart", "in_favorite", "unit_price",
+                "original_price", "discount_rate", "rating_average", "review_count",
+                "is_top_brand", "is_freeship_xtra", "quantity_sold", "has_buynow",
+                "day_ago_created", "qty_clicks"
+            ];
+
+            featureNames.forEach(fn => {
+                const el = document.getElementsByName(fn)[0];
+                if (el) {
+                    if (row.hasOwnProperty(fn)) el.value = row[fn];
+                    else {
+                        const found = Object.keys(row).find(k => k.replace(/\s+/g, '_').toLowerCase() === fn.toLowerCase());
+                        if (found) el.value = row[found];
+                    }
+                }
+            });
+        }
+
+        document.getElementById("predictForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(e.target).entries());
+            // convert to numbers
+            Object.keys(data).forEach(k => {
+                const n = Number(data[k]);
+                data[k] = isNaN(n) ? data[k] : n;
+            });
+
+            const res = await fetch("/predict-product", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data)
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: res.statusText }));
+                alert("Predict lỗi: " + (err.detail || res.statusText));
+                return;
+            }
+            const json = await res.json();
+            if (json.error) {
+                document.getElementById("result").innerText = "Lỗi: " + json.error;
+            } else {
+                document.getElementById("result").innerText = "Khả năng mua: " + (json.probability * 100).toFixed(2) + "%";
+            }
+        });
+    </script>
 
 </body>
+
 </html>
