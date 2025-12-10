@@ -8,3 +8,4 @@ aiofiles
 imbalanced-learn
 jinja2
 python-multipart
+pyarrow

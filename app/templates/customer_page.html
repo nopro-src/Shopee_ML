@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Phân nhóm khách hàng</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+
+<body>
+    <div class="container">
+        <h2>Phân nhóm khách hàng</h2>
+
+        <div class="card">
+            <label><b>Chọn file CSV để xem & chọn dòng:</b></label>
+            <div class="row">
+                <input id="csvInput" type="file" accept=".csv">
+                <button id="uploadBtn" class="btn">Tải lên & Xem dữ liệu</button>
+            </div>
+            <div id="fileInfo" class="muted"></div>
+        </div>
+
+        <div id="previewSection" style="display:none">
+            <h3>Dữ liệu trong file:</h3>
+            <div id="tableWrapper" class="table-scroll">
+                <table id="csvTable" class="csv-table">
+                    <thead id="csvHead"></thead>
+                    <tbody id="csvBody"></tbody>
+                </table>
+            </div>
+            <div class="muted">Kéo bảng xuống để tải thêm dữ liệu. Bấm 1 dòng để xác định cluster.</div>
+        </div>
+        <div id="clusterResult" class="card" style="display:none;">
+            <h3>Kết quả cluster</h3>
+            <div class="table-scroll">
+                <div id="clusterText"></div>
+            </div>
+        </div>
+
+
+        <a href="/" class="back">← Quay lại</a>
+    </div>
+
+    <script>
+        const CHUNK_SIZE = 150;
+        let currentFilename = null;
+        let totalRows = 0;
+        let loadedUntil = 0;
+        let loading = false;
+
+        document.getElementById("uploadBtn").addEventListener("click", async e => {
+            e.preventDefault();
+            const fileInput = document.getElementById("csvInput");
+            if (!fileInput.files || fileInput.files.length === 0) { alert("Chọn file CSV trước."); return; }
+            const file = fileInput.files[0];
+            const form = new FormData();
+            form.append("file", file);
+
+            document.getElementById("fileInfo").innerText = "Đang tải lên...";
+            const infoRes = await fetch("/upload-csv", { method: "POST", body: form });
+            if (!infoRes.ok) { alert("Lỗi upload"); return; }
+            const info = await infoRes.json();
+            currentFilename = info.filename;
+            totalRows = info.rows;
+            document.getElementById("fileInfo").innerText = `File: ${currentFilename} — ${totalRows} hàng.`;
+            document.getElementById("previewSection").style.display = "block";
+            document.getElementById("csvHead").innerHTML = "";
+            document.getElementById("csvBody").innerHTML = "";
+            loadedUntil = 0;
+            await loadChunk();
+        });
+
+        async function loadChunk() {
+            if (!currentFilename || loading) return;
+            if (loadedUntil >= totalRows) return;
+            loading = true;
+            const res = await fetch(`/load-csv-chunk?filename=${encodeURIComponent(currentFilename)}&start=${loadedUntil}&size=${CHUNK_SIZE}`);
+            if (!res.ok) { loading = false; return; }
+            const json = await res.json();
+            appendRows(json.data);
+            loadedUntil = json.end;
+            loading = false;
+        }
+
+        function appendRows(rows) {
+            if (!rows || rows.length === 0) return;
+            const thead = document.getElementById("csvHead");
+            const tbody = document.getElementById("csvBody");
+            if (thead.children.length === 0) {
+                const tr = document.createElement("tr");
+                const colMap = {
+                    "user_row": "Thông tin user",
+                    "cluster": "Cụm",
+                    "cluster_name": "Tên cụm",
+                    "cluster_description": "Mô tả cụm",
+                    "cluster_summary": "Tóm tắt cluster"
+                };
+                Object.keys(rows[0]).forEach(k => {
+                    const th = document.createElement("th");
+                    th.innerText = colMap[k] || k;
+                    tr.appendChild(th);
+                });
+                thead.appendChild(tr);
+            }
+
+            rows.forEach((row, idx) => {
+                const tr = document.createElement("tr");
+                tr.dataset.rowIndex = (loadedUntil + idx);
+                Object.keys(row).forEach(k => {
+                    const td = document.createElement("td");
+                    const val = row[k];
+                    if (k === "user_row") {
+                        td.innerText = JSON.stringify(val, null, 2);
+                        td.style.whiteSpace = "pre-wrap";
+                    } else if (k === "cluster_summary") {
+                        const nestedTable = document.createElement("table");
+                        nestedTable.className = "nested-table";
+                        for (const f in val) {
+                            const nestedTr = document.createElement("tr");
+                            const tdKey = document.createElement("td"); tdKey.innerText = f;
+                            const tdVal = document.createElement("td"); tdVal.innerText = val[f];
+                            nestedTr.appendChild(tdKey); nestedTr.appendChild(tdVal);
+                            nestedTable.appendChild(nestedTr);
+                        }
+                        td.appendChild(nestedTable);
+                    } else {
+                        td.innerText = val;
+                    }
+                    tr.appendChild(td);
+                });
+                tr.addEventListener("click", async function () {
+                    [...this.parentElement.querySelectorAll("tr")].forEach(r => r.classList.remove("selected"));
+                    this.classList.add("selected");
+
+                    // Lấy dữ liệu dòng
+                    const index = parseInt(this.dataset.rowIndex);
+                    const r = await fetch(`/get-row?filename=${encodeURIComponent(currentFilename)}&index=${index}`);
+                    if (!r.ok) { alert("Không lấy được dòng"); return; }
+                    const rowData = await r.json();
+
+                    // Tìm user_id
+                    const userKeys = ['user_id', 'user', 'uid'];
+                    let uid = null;
+                    for (let k of userKeys) { if (rowData.hasOwnProperty(k)) { uid = rowData[k]; break; } }
+                    if (!uid) { alert("Không tìm thấy user_id"); return; }
+
+                    // Gọi API lấy cluster
+                    const res = await fetch("/get-user-cluster", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ user_id: uid })
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({ detail: res.statusText }));
+                        alert("Lỗi lấy cluster: " + (err.detail || res.statusText));
+                        return;
+                    }
+                    const clusterData = await res.json();
+                    const clusterDiv = document.getElementById("clusterText");
+                    clusterDiv.innerHTML = ""; // reset
+
+                    // Build table
+                    const table = document.createElement("table");
+                    table.className = "csv-table";
+
+                    const thead = document.createElement("thead");
+                    const trHead = document.createElement("tr");
+                    Object.keys(clusterData).forEach(k => {
+                        const th = document.createElement("th");
+                        const colMap = {
+                            "user_row": "Thông tin user",
+                            "cluster": "Cụm",
+                            "cluster_name": "Tên cụm",
+                            "cluster_description": "Mô tả cụm",
+                            "cluster_summary": "Tóm tắt cluster"
+                        };
+                        th.innerText = colMap[k] || k;
+                        trHead.appendChild(th);
+                    });
+                    thead.appendChild(trHead);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement("tbody");
+                    const trBody = document.createElement("tr");
+
+                    Object.keys(clusterData).forEach(k => {
+                        const td = document.createElement("td");
+                        const val = clusterData[k];
+                        if (k === "user_row") {
+                            td.innerText = JSON.stringify(val, null, 2);
+                            td.style.whiteSpace = "pre-wrap";
+                        } else if (k === "cluster_summary") {
+                            const nestedTable = document.createElement("table");
+                            nestedTable.className = "nested-table";
+                            for (const f in val) {
+                                const nestedTr = document.createElement("tr");
+                                const tdKey = document.createElement("td"); tdKey.innerText = f;
+                                const tdVal = document.createElement("td"); tdVal.innerText = val[f];
+                                nestedTr.appendChild(tdKey); nestedTr.appendChild(tdVal);
+                                nestedTable.appendChild(nestedTr);
+                            }
+                            td.appendChild(nestedTable);
+                        } else {
+                            td.innerText = val;
+                        }
+                        trBody.appendChild(td);
+                    });
+
+                    tbody.appendChild(trBody);
+                    table.appendChild(tbody);
+                    clusterDiv.appendChild(table);
+                    document.getElementById("clusterResult").style.display = "block";
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        document.getElementById("tableWrapper").addEventListener("scroll", function () {
+            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 80) {
+                loadChunk();
+            }
+        });
+    </script>
+</body>
+
+</html>

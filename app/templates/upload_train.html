@@ -1,39 +1,184 @@
-<!-- app/templates/upload_train.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>Train mô hình</title>
-    <link rel="stylesheet" href="/static/styles.css">
+<meta charset="utf-8">
+<title>Train mô hình</title>
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f8f9fa;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 900px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+}
+
+.card {
+    background-color: #fff;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.1);
+}
+
+.card h3 {
+    margin-top: 0;
+    color: #444;
+}
+
+label {
+    display: block;
+    margin-top: 10px;
+    font-weight: bold;
+}
+
+input[type="file"], input[type="number"] {
+    margin-top: 5px;
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.btn {
+    margin-top: 10px;
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+}
+
+.back {
+    display: inline-block;
+    margin-top: 10px;
+    text-decoration: none;
+    color: #555;
+}
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-top: 10px;
+}
+
+table, th, td {
+    border: 1px solid #ccc;
+}
+
+th, td {
+    padding: 8px;
+    text-align: center;
+}
+
+th {
+    background-color: #f1f1f1;
+}
+
+pre {
+    white-space: pre-wrap;
+    font-size: 13px;
+    background-color: #f1f1f1;
+    padding: 10px;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+</style>
 </head>
 <body>
 <div class="container">
     <h2>Train mô hình từ CSV</h2>
 
-    <form action="/train-product" method="post" enctype="multipart/form-data" class="card">
-        <label>Chọn file CSV (có cột purchased 0/1):</label>
-        <input type="file" name="file" required>
-        <button class="btn">Train</button>
-    </form>
+    <!-- Product Model -->
+    <div class="card">
+        <h3>Train Product Model (dự đoán tỉ lệ đặt hàng)</h3>
+        <form action="/train-product" method="post" enctype="multipart/form-data">
+            <label>Chọn file CSV:</label>
+            <input type="file" name="file" required>
+            <button class="btn">Train Product</button>
+        </form>
+    </div>
+
+    <!-- Customer Clustering -->
+    <div class="card">
+        <h3>Train Customer Clustering (phân nhóm khách hàng)</h3>
+        <form action="/train-customer" method="post" enctype="multipart/form-data">
+            <label>Chọn file CSV:</label>
+            <input type="file" name="file" required>
+            <button class="btn">Train Customer Clustering</button>
+        </form>
+    </div>
 
     <a href="/" class="back">← Quay lại</a>
 
     {% if metrics %}
-        <div class="card" style="margin-top:16px;">
-            <h3>Kết quả train</h3>
-            <p><strong>File:</strong> {{ filename }}</p>
-            <p><strong>Số hàng:</strong> {{ metrics.n_rows }}</p>
+    <div class="card">
+        <h3>Kết quả train ({{ trained_type if trained_type else 'result' }})</h3>
+        <p><strong>File:</strong> {{ filename }}</p>
+        <p><strong>Số hàng:</strong> {{ metrics.n_rows }}</p>
+
+        {% if trained_type == 'product' %}
             <p><strong>Features:</strong> {{ metrics.features }}</p>
-            <p><strong>ROC-AUC:</strong> {{ metrics.roc_auc }}</p>
+            <p><strong>ROC-AUC:</strong> {{ "%.3f"|format(metrics.roc_auc) }}</p>
 
             <h4>Báo cáo classification</h4>
-            <pre style="white-space:pre-wrap; font-size:13px;">
-{% for k, v in metrics.report.items() %}
-{{ k }} : {{ v }}
-{% endfor %}
-            </pre>
-        </div>
+            <table>
+                <tr>
+                    <th>Label</th>
+                    <th>Precision</th>
+                    <th>Recall</th>
+                    <th>F1-Score</th>
+                    <th>Support</th>
+                </tr>
+                {% for k, v in metrics.report.items() %}
+                <tr>
+                    <td>{{ k }}</td>
+                    {% if v is mapping %}
+                        <td>{{ "%.3f"|format(v['precision']) }}</td>
+                        <td>{{ "%.3f"|format(v['recall']) }}</td>
+                        <td>{{ "%.3f"|format(v['f1-score']) }}</td>
+                        <td>{{ v['support'] }}</td>
+                    {% else %}
+                        <td colspan="3">{{ "%.3f"|format(v) }}</td>
+                        <td>-</td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </table>
+
+        {% elif trained_type == 'customer' %}
+            <p><strong>Số cụm:</strong> {{ metrics.n_clusters }}</p>
+            <h4>Tóm tắt cluster (mean)</h4>
+            <table>
+                <tr>
+                    <th>Feature</th>
+                    <th>Mean</th>
+                </tr>
+                {% for f, val in metrics.cluster_summary.items() %}
+                <tr>
+                    <td>{{ f }}</td>
+                    <td>{{ "%.2f"|format(val) }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            <p>Đã lưu bảng phân cụm vào <code>app/ml/customer_clusters.parquet</code></p>
+        {% endif %}
+    </div>
     {% endif %}
+
 </div>
 </body>
 </html>
